@@ -27,18 +27,26 @@ export const useThemeStore = create<ThemeState>()(
         }),
       initTheme: () =>
         set((state) => {
-          // Set initial theme based on system preference
+          // Set initial theme based on system preference or stored value
           const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
           const theme = state.theme || systemTheme
+          const colors = theme === 'light' ? lightTheme : darkTheme
+          // Immediately update the document class
           document.documentElement.classList.toggle('dark', theme === 'dark')
           return {
             theme,
-            colors: theme === 'light' ? lightTheme : darkTheme,
+            colors,
           }
         }),
     }),
     {
       name: 'theme-storage',
+      onRehydrateStorage: () => (state) => {
+        // When storage is rehydrated, ensure theme class is set
+        if (state) {
+          document.documentElement.classList.toggle('dark', state.theme === 'dark')
+        }
+      },
     }
   )
 )

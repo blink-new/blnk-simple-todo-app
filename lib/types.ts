@@ -1,5 +1,18 @@
 export type TodoPriority = 'low' | 'medium' | 'high';
 export type TodoFilter = 'all' | 'active' | 'completed';
+export type ViewMode = 'list' | 'board';
+
+export interface Subtask {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
+export interface Comment {
+  id: string;
+  text: string;
+  createdAt: Date;
+}
 
 export interface Todo {
   id: string;
@@ -9,6 +22,9 @@ export interface Todo {
   priority: TodoPriority;
   dueDate?: Date;
   createdAt: Date;
+  description: string;
+  subtasks: Subtask[];
+  comments: Comment[];
 }
 
 export const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {

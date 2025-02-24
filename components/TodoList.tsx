@@ -1,12 +1,24 @@
-'use client';
-
-import { useState, useRef, useEffect } from 'react';
-import { Plus, Search, Tag, Calendar, Trash2, Flag, Info } from 'lucide-react';
+import { useState } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { Plus, Search, Tag, Calendar, Info, Flag, LayoutGrid, LayoutList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { TodoFilter, Todo, TodoPriority } from '@/lib/types';
-import { useTodos } from '@/hooks/useTodos';
+import { TodoFilter, ViewMode } from '@/lib/types';
+import { useTodoStore } from '@/lib/store';
 import {
   Select,
   SelectContent,
@@ -20,48 +32,70 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useToast } from "@/components/ui/use-toast";
-import { format } from 'date-fns';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
+import { TodoItem } from './TodoItem';
+import { useToast } from "@/components/ui/use-toast";
+import { useHotkeys } from 'react-hotkeys-hook';
 
 export function TodoList() {
-  const { todos, addTodo, toggleTodo, deleteTodo, updateTodo } = useTodos();
+  const {
+    todos,
+    addTodo,
+    toggleTodo,
+    deleteTodo,
+    updateTodo,
+    reorderTodos,
+    undo,
+    redo
+  } = useTodoStore();
+  
   const [newTodo, setNewTodo] = useState('');
   const [filter, setFilter] = useState<TodoFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [newCategory, setNewCategory] = useState('default');
-  const [newPriority, setNewPriority] = useState<TodoPriority>('medium');
+  const [newPriority, setNewPriority] = useState('medium');
   const [selectedDate, setSelectedDate] = useState<Date>();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [selectedTodos, setSelectedTodos] = useState<string[]>([]);
+  
   const { toast } = useToast();
 
-  // Focus input on load
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
   // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === '/' && document.activeElement?.tagName !== 'INPUT') {
-        e.preventDefault();
-        inputRef.current?.focus();
-      }
-    };
+  useHotkeys('mod+z', () => undo(), { preventDefault: true });
+  useHotkeys('mod+shift+z', () => redo(), { preventDefault: true });
+  useHotkeys('/', () => {
+    const searchInput = document.querySelector('input[type="search"]');
+    if (searchInput && document.activeElement?.tagName !== 'INPUT') {
+      searchInput.focus();
+    }
+  }, { preventDefault: true });
 
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, []);
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: any) => {
+    const { active, over } = event;
+    
+    if (active.id !== over.id) {
+      const oldIndex = todos.findIndex((t) => t.id === active.id);
+      const newIndex = todos.findIndex((t) => t.id === over.id);
+      reorderTodos(oldIndex, newIndex);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (newTodo.trim()) {
-      addTodo(newTodo.trim(), newCategory, selectedDate, newPriority);
+      addTodo(newTodo.trim(), newCategory, selectedDate, newPriority as any);
       setNewTodo('');
       setSelectedDate(undefined);
       setNewCategory('default');
@@ -73,20 +107,12 @@ export function TodoList() {
     }
   };
 
-  const handleDelete = (id: string, text: string) => {
+  const handleDelete = (id: string) => {
     deleteTodo(id);
     toast({
       title: "Task deleted",
-      description: `"${text}" has been removed.`,
+      description: "The task has been removed.",
       variant: "destructive",
-    });
-  };
-
-  const handleToggle = (todo: Todo) => {
-    toggleTodo(todo.id);
-    toast({
-      title: todo.completed ? "Task uncompleted" : "Task completed",
-      description: `"${todo.text}" marked as ${todo.completed ? 'uncompleted' : 'completed'}.`,
     });
   };
 
@@ -109,7 +135,26 @@ export function TodoList() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <h1 className="text-4xl font-bold text-blue-500">Tasks</h1>
-            <div className="flex items-center gap-2 text-sm text-gray-400">
+            <div className="flex items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setViewMode(viewMode === 'list' ? 'board' : 'list')}
+                  >
+                    {viewMode === 'list' ? (
+                      <LayoutGrid className="h-4 w-4" />
+                    ) : (
+                      <LayoutList className="h-4 w-4" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Switch to {viewMode === 'list' ? 'board' : 'list'} view
+                </TooltipContent>
+              </Tooltip>
+
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="ghost" size="sm" className="gap-2">
@@ -121,12 +166,14 @@ export function TodoList() {
                   <div className="space-y-2">
                     <p>Press "/" to focus search</p>
                     <p>Press "Enter" to add task</p>
-                    <p>Press "Esc" to clear input</p>
+                    <p>Press "⌘Z" to undo</p>
+                    <p>Press "⌘⇧Z" to redo</p>
                   </div>
                 </TooltipContent>
               </Tooltip>
             </div>
           </div>
+          
           <div className="flex gap-4 text-sm text-gray-400">
             <span>{activeTodos} active</span>
             <span>•</span>
@@ -138,7 +185,7 @@ export function TodoList() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
             <Input
-              type="text"
+              type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search tasks... (Press '/' to focus)"
@@ -148,7 +195,6 @@ export function TodoList() {
 
           <form onSubmit={handleSubmit} className="flex gap-2">
             <Input
-              ref={inputRef}
               type="text"
               value={newTodo}
               onChange={(e) => setNewTodo(e.target.value)}
@@ -180,7 +226,7 @@ export function TodoList() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <div>
-                  <Select value={newPriority} onValueChange={setNewPriority as any}>
+                  <Select value={newPriority} onValueChange={setNewPriority}>
                     <SelectTrigger className="w-[100px] bg-[#151922] border-none text-gray-300">
                       <Flag className="h-4 w-4 mr-2" />
                       <SelectValue />
@@ -273,70 +319,34 @@ export function TodoList() {
         </div>
 
         <div className="space-y-2">
-          {filteredTodos.map((todo) => (
-            <div
-              key={todo.id}
-              className={cn(
-                "group flex items-center gap-3 p-4 rounded-lg transition-all bg-[#151922]",
-                "hover:bg-[#1A1F2A]",
-                "animate-fadeIn",
-                todo.completed && "opacity-50"
-              )}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={filteredTodos.map(t => t.id)}
+              strategy={verticalListSortingStrategy}
             >
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => handleToggle(todo)}
-                    className={cn(
-                      "w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
-                      todo.completed ? "border-blue-500 bg-blue-500" : "border-gray-500 hover:border-blue-500"
-                    )}
-                  >
-                    {todo.completed && (
-                      <div className="w-2 h-2 bg-white rounded-full" />
-                    )}
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>Mark as {todo.completed ? 'uncompleted' : 'completed'}</TooltipContent>
-              </Tooltip>
-              
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className={cn(
-                    "text-gray-300 font-medium",
-                    todo.completed && "line-through text-gray-500"
-                  )}>
-                    {todo.text}
-                  </p>
-                  <span className="text-sm px-2 py-0.5 rounded-full bg-[#1D2232] text-gray-400 capitalize">
-                    {todo.category}
-                  </span>
-                  <span className="text-sm">
-                    {todo.priority === 'high' ? '🔴' : todo.priority === 'medium' ? '🟡' : '🟢'}
-                  </span>
-                </div>
-                {todo.dueDate && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Due {format(todo.dueDate, 'PPP')}
-                  </p>
-                )}
-              </div>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(todo.id, todo.text)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-red-500"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Delete task</TooltipContent>
-              </Tooltip>
-            </div>
-          ))}
+              {filteredTodos.map((todo) => (
+                <TodoItem
+                  key={todo.id}
+                  todo={todo}
+                  onToggle={toggleTodo}
+                  onDelete={handleDelete}
+                  onUpdate={updateTodo}
+                  isSelected={selectedTodos.includes(todo.id)}
+                  onSelect={(id) => {
+                    setSelectedTodos(prev =>
+                      prev.includes(id)
+                        ? prev.filter(i => i !== id)
+                        : [...prev, id]
+                    );
+                  }}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
 
           {filteredTodos.length === 0 && (
             <div className="text-center py-12 text-gray-500 animate-fadeIn">

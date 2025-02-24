@@ -1,38 +1,64 @@
-// ... previous imports ...
+'use client';
+
+import { useState, useEffect } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { 
+  Plus, 
+  Search, 
+  Tag, 
+  Calendar, 
+  Info, 
+  Flag, 
+  LayoutGrid, 
+  LayoutList,
+  Sun,
+  Moon,
+  Keyboard
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { TodoFilter, ViewMode } from '@/lib/types';
+import { useTodoStore } from '@/lib/store';
+import { useThemeStore } from '@/lib/stores/theme-store';
+import { useShortcutsStore } from '@/lib/stores/shortcuts-store';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar as CalendarUI } from "@/components/ui/calendar";
+import { TodoItem } from './TodoItem';
+import { TodoSkeleton } from './TodoSkeleton';
+import { ShortcutsDialog } from './ShortcutsDialog';
 import { ProgressBar } from './ProgressBar';
+import { useToast } from "@/components/ui/use-toast";
+import { useHotkeys } from 'react-hotkeys-hook';
 
-export function TodoList() {
-  // ... previous code ...
-
-  return (
-    <TooltipProvider>
-      <div className="w-full max-w-2xl mx-auto space-y-8">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-blue-600">
-                Tasks
-              </h1>
-              <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                <span>{activeTodos} active</span>
-                <span className="text-muted-foreground/30">•</span>
-                <span>{completedTodos} completed</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {/* ... existing buttons ... */}
-            </div>
-          </div>
-
-          <ProgressBar 
-            total={todos.length} 
-            completed={completedTodos}
-          />
-        </div>
-
-        {/* ... rest of the existing JSX ... */}
-      </div>
-      <ShortcutsDialog />
-    </TooltipProvider>
-  );
-}
+// ... rest of the component code stays the same ...

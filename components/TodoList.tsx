@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -13,12 +13,26 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Plus, Search, Tag, Calendar, Info, Flag, LayoutGrid, LayoutList } from 'lucide-react';
+import { 
+  Plus, 
+  Search, 
+  Tag, 
+  Calendar, 
+  Info, 
+  Flag, 
+  LayoutGrid, 
+  LayoutList,
+  Sun,
+  Moon,
+  Keyboard
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { TodoFilter, ViewMode } from '@/lib/types';
 import { useTodoStore } from '@/lib/store';
+import { useThemeStore } from '@/lib/stores/theme-store';
+import { useShortcutsStore } from '@/lib/stores/shortcuts-store';
 import {
   Select,
   SelectContent,
@@ -39,6 +53,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { TodoItem } from './TodoItem';
+import { ShortcutsDialog } from './ShortcutsDialog';
 import { useToast } from "@/components/ui/use-toast";
 import { useHotkeys } from 'react-hotkeys-hook';
 
@@ -54,6 +69,9 @@ export function TodoList() {
     redo
   } = useTodoStore();
   
+  const { theme, toggleTheme } = useThemeStore();
+  const { toggleOpen: toggleShortcuts } = useShortcutsStore();
+  
   const [newTodo, setNewTodo] = useState('');
   const [filter, setFilter] = useState<TodoFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -65,15 +83,31 @@ export function TodoList() {
   
   const { toast } = useToast();
 
+  // Theme effect
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
+
   // Keyboard shortcuts
   useHotkeys('mod+z', () => undo(), { preventDefault: true });
   useHotkeys('mod+shift+z', () => redo(), { preventDefault: true });
-  useHotkeys('/', () => {
-    const searchInput = document.querySelector('input[type="search"]');
-    if (searchInput && document.activeElement?.tagName !== 'INPUT') {
-      searchInput.focus();
+  useHotkeys('/', (e) => {
+    if (document.activeElement?.tagName !== 'INPUT') {
+      e.preventDefault();
+      const searchInput = document.querySelector('input[type="search"]');
+      if (searchInput) {
+        (searchInput as HTMLInputElement).focus();
+      }
     }
-  }, { preventDefault: true });
+  });
+  useHotkeys('mod+k', () => toggleShortcuts(), { preventDefault: true });
+  useHotkeys('mod+d', () => toggleTheme(), { preventDefault: true });
+  useHotkeys('mod+enter', (e) => {
+    e.preventDefault();
+    if (newTodo.trim()) {
+      handleSubmit(e as any);
+    }
+  });
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -134,7 +168,7 @@ export function TodoList() {
       <div className="w-full max-w-2xl mx-auto space-y-6">
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h1 className="text-4xl font-bold text-blue-500">Tasks</h1>
+            <h1 className="text-4xl font-bold text-primary">Tasks</h1>
             <div className="flex items-center gap-2">
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -157,24 +191,41 @@ export function TodoList() {
 
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="sm" className="gap-2">
-                    <Info className="h-4 w-4" />
-                    Keyboard Shortcuts
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleTheme}
+                  >
+                    {theme === 'light' ? (
+                      <Moon className="h-4 w-4" />
+                    ) : (
+                      <Sun className="h-4 w-4" />
+                    )}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <div className="space-y-2">
-                    <p>Press "/" to focus search</p>
-                    <p>Press "Enter" to add task</p>
-                    <p>Press "⌘Z" to undo</p>
-                    <p>Press "⌘⇧Z" to redo</p>
-                  </div>
+                  Toggle theme (⌘D)
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleShortcuts}
+                  >
+                    <Keyboard className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Keyboard shortcuts (⌘K)
                 </TooltipContent>
               </Tooltip>
             </div>
           </div>
           
-          <div className="flex gap-4 text-sm text-gray-400">
+          <div className="flex gap-4 text-sm text-muted-foreground">
             <span>{activeTodos} active</span>
             <span>•</span>
             <span>{completedTodos} completed</span>
@@ -183,13 +234,13 @@ export function TodoList() {
 
         <div className="space-y-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search tasks... (Press '/' to focus)"
-              className="pl-9 bg-[#151922] border-none text-gray-300 placeholder-gray-500"
+              className="pl-9"
             />
           </div>
 
@@ -199,18 +250,18 @@ export function TodoList() {
               value={newTodo}
               onChange={(e) => setNewTodo(e.target.value)}
               placeholder="Add a new task..."
-              className="flex-1 bg-[#151922] border-none text-gray-300 placeholder-gray-500"
+              className="flex-1"
             />
             
             <Tooltip>
               <TooltipTrigger asChild>
                 <div>
                   <Select value={newCategory} onValueChange={setNewCategory}>
-                    <SelectTrigger className="w-[110px] bg-[#151922] border-none text-gray-300">
+                    <SelectTrigger className="w-[110px]">
                       <Tag className="h-4 w-4 mr-2" />
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#151922] border-gray-700">
+                    <SelectContent>
                       <SelectItem value="default">Default</SelectItem>
                       <SelectItem value="personal">Personal</SelectItem>
                       <SelectItem value="work">Work</SelectItem>
@@ -227,11 +278,11 @@ export function TodoList() {
               <TooltipTrigger asChild>
                 <div>
                   <Select value={newPriority} onValueChange={setNewPriority}>
-                    <SelectTrigger className="w-[100px] bg-[#151922] border-none text-gray-300">
+                    <SelectTrigger className="w-[100px]">
                       <Flag className="h-4 w-4 mr-2" />
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#151922] border-gray-700">
+                    <SelectContent>
                       <SelectItem value="low">🟢 Low</SelectItem>
                       <SelectItem value="medium">🟡 Medium</SelectItem>
                       <SelectItem value="high">🔴 High</SelectItem>
@@ -250,8 +301,8 @@ export function TodoList() {
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-10 p-0 bg-[#151922] border-none",
-                          selectedDate && "text-blue-500"
+                          "w-10 p-0",
+                          selectedDate && "text-primary"
                         )}
                       >
                         <Calendar className="h-4 w-4" />
@@ -273,11 +324,11 @@ export function TodoList() {
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button type="submit" className="bg-blue-500 hover:bg-blue-600 text-white">
+                <Button type="submit">
                   <Plus className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Add task (Enter)</TooltipContent>
+              <TooltipContent>Add task (⌘↵)</TooltipContent>
             </Tooltip>
           </form>
 
@@ -286,10 +337,7 @@ export function TodoList() {
               variant={filter === 'all' ? 'default' : 'ghost'}
               onClick={() => setFilter('all')}
               size="sm"
-              className={cn(
-                "text-sm",
-                filter === 'all' ? 'bg-blue-500 hover:bg-blue-600' : 'text-gray-400 hover:text-gray-300'
-              )}
+              className="text-sm"
             >
               All
             </Button>
@@ -297,10 +345,7 @@ export function TodoList() {
               variant={filter === 'active' ? 'default' : 'ghost'}
               onClick={() => setFilter('active')}
               size="sm"
-              className={cn(
-                "text-sm",
-                filter === 'active' ? 'bg-blue-500 hover:bg-blue-600' : 'text-gray-400 hover:text-gray-300'
-              )}
+              className="text-sm"
             >
               Active
             </Button>
@@ -308,10 +353,7 @@ export function TodoList() {
               variant={filter === 'completed' ? 'default' : 'ghost'}
               onClick={() => setFilter('completed')}
               size="sm"
-              className={cn(
-                "text-sm",
-                filter === 'completed' ? 'bg-blue-500 hover:bg-blue-600' : 'text-gray-400 hover:text-gray-300'
-              )}
+              className="text-sm"
             >
               Completed
             </Button>
@@ -349,12 +391,13 @@ export function TodoList() {
           </DndContext>
 
           {filteredTodos.length === 0 && (
-            <div className="text-center py-12 text-gray-500 animate-fadeIn">
+            <div className="text-center py-12 text-muted-foreground animate-fadeIn">
               {searchQuery ? 'No matching tasks found' : 'No tasks yet'}
             </div>
           )}
         </div>
       </div>
+      <ShortcutsDialog />
     </TooltipProvider>
   );
 }

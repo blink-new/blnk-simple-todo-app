@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Todo } from '@/lib/types';
+import { Todo, TodoPriority } from '@/lib/types';
 
 export function useTodos() {
   const [todos, setTodos] = useState<Todo[]>(() => {
@@ -19,13 +19,19 @@ export function useTodos() {
     localStorage.setItem('todos', JSON.stringify(todos));
   }, [todos]);
 
-  const addTodo = (text: string, category: string = 'default', dueDate?: Date) => {
+  const addTodo = (
+    text: string,
+    category: string = 'default',
+    dueDate?: Date,
+    priority: TodoPriority = 'medium'
+  ) => {
     setTodos(prev => [
       {
         id: crypto.randomUUID(),
         text,
         completed: false,
         category,
+        priority,
         dueDate,
         createdAt: new Date(),
       },

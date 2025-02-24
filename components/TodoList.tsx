@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+'use client';
+
+import { useState } from 'react';
 import { format } from 'date-fns';
 import { Calendar, CheckCircle2, Circle, Trash2, Plus, Search, Tag, Flag } from 'lucide-react';
 import { cn } from '@/lib/utils';

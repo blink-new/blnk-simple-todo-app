@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Todo, TodoPriority } from '@/lib/types';
 
-export function useTodos() {
-  const [todos, setTodos] = useState<Todo[]>(() => {
+const getInitialTodos = (): Todo[] => {
+  if (typeof window !== 'undefined') {
     const saved = localStorage.getItem('todos');
     if (saved) {
       return JSON.parse(saved, (key, value) => {
@@ -12,8 +12,12 @@ export function useTodos() {
         return value;
       });
     }
-    return [];
-  });
+  }
+  return [];
+};
+
+export function useTodos() {
+  const [todos, setTodos] = useState<Todo[]>(getInitialTodos);
 
   useEffect(() => {
     localStorage.setItem('todos', JSON.stringify(todos));

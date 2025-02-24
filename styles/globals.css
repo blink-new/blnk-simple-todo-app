@@ -23,7 +23,7 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
   }
  
   .dark {
@@ -47,28 +47,76 @@
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.3% 48%;
   }
+}
 
+@layer base {
   * {
     @apply border-border;
   }
-
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
-/* Smooth theme transition */
-:root {
-  color-scheme: light;
-}
-
-.dark {
-  color-scheme: dark;
-}
-
+/* Smooth transitions */
 * {
-  transition: background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+  @apply transition-colors duration-200;
+}
+
+/* Input styles */
+input[type="text"],
+input[type="search"] {
+  @apply bg-muted border-0 h-10 rounded-lg px-4 text-sm;
+  @apply placeholder:text-muted-foreground;
+  @apply focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background;
+}
+
+/* Button styles */
+.btn-primary {
+  @apply bg-primary text-primary-foreground hover:bg-primary/90;
+  @apply rounded-lg px-4 h-10 font-medium;
+}
+
+.btn-ghost {
+  @apply text-muted-foreground hover:text-foreground hover:bg-muted;
+  @apply rounded-lg px-3 h-9;
+}
+
+/* Card styles */
+.card {
+  @apply bg-card text-card-foreground rounded-lg border shadow-sm;
+}
+
+/* Animation keyframes */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slideDown {
+  animation: slideDown 0.2s ease-out;
 }
 
 /* Loading animation */
@@ -85,4 +133,20 @@
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* ... rest of your existing CSS ... */
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-muted rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted/80;
+}

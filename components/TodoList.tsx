@@ -90,7 +90,6 @@ export function TodoList() {
   // Initialize theme and simulate loading
   useEffect(() => {
     initTheme();
-    // Simulate loading for demo purposes
     const timer = setTimeout(() => setIsLoading(false), 1000);
     return () => clearTimeout(timer);
   }, [initTheme]);
@@ -180,16 +179,26 @@ export function TodoList() {
 
   return (
     <TooltipProvider>
-      <div className="w-full max-w-2xl mx-auto space-y-6">
+      <div className="w-full max-w-2xl mx-auto space-y-8">
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h1 className="text-4xl font-bold text-primary">Tasks</h1>
+            <div>
+              <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-blue-600">
+                Tasks
+              </h1>
+              <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                <span>{activeTodos} active</span>
+                <span className="text-muted-foreground/30">•</span>
+                <span>{completedTodos} completed</span>
+              </div>
+            </div>
             <div className="flex items-center gap-2">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="rounded-lg"
                     onClick={() => setViewMode(viewMode === 'list' ? 'board' : 'list')}
                   >
                     {viewMode === 'list' ? (
@@ -209,6 +218,7 @@ export function TodoList() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="rounded-lg"
                     onClick={toggleTheme}
                   >
                     {theme === 'light' ? (
@@ -228,6 +238,7 @@ export function TodoList() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="rounded-lg"
                     onClick={toggleShortcuts}
                   >
                     <Keyboard className="h-4 w-4" />
@@ -238,12 +249,6 @@ export function TodoList() {
                 </TooltipContent>
               </Tooltip>
             </div>
-          </div>
-          
-          <div className="flex gap-4 text-sm text-muted-foreground">
-            <span>{activeTodos} active</span>
-            <span>•</span>
-            <span>{completedTodos} completed</span>
           </div>
         </div>
 
@@ -272,7 +277,7 @@ export function TodoList() {
               <TooltipTrigger asChild>
                 <div>
                   <Select value={newCategory} onValueChange={setNewCategory}>
-                    <SelectTrigger className="w-[110px]">
+                    <SelectTrigger className="w-[110px] bg-muted border-0">
                       <Tag className="h-4 w-4 mr-2" />
                       <SelectValue />
                     </SelectTrigger>
@@ -293,7 +298,7 @@ export function TodoList() {
               <TooltipTrigger asChild>
                 <div>
                   <Select value={newPriority} onValueChange={setNewPriority}>
-                    <SelectTrigger className="w-[100px]">
+                    <SelectTrigger className="w-[100px] bg-muted border-0">
                       <Flag className="h-4 w-4 mr-2" />
                       <SelectValue />
                     </SelectTrigger>
@@ -316,7 +321,7 @@ export function TodoList() {
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-10 p-0",
+                          "w-10 p-0 bg-muted border-0",
                           selectedDate && "text-primary"
                         )}
                       >
@@ -339,7 +344,7 @@ export function TodoList() {
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button type="submit">
+                <Button type="submit" size="icon" className="bg-primary text-primary-foreground hover:bg-primary/90">
                   <Plus className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -352,7 +357,10 @@ export function TodoList() {
               variant={filter === 'all' ? 'default' : 'ghost'}
               onClick={() => setFilter('all')}
               size="sm"
-              className="text-sm"
+              className={cn(
+                "text-sm rounded-lg",
+                filter === 'all' && "bg-primary text-primary-foreground hover:bg-primary/90"
+              )}
             >
               All
             </Button>
@@ -360,7 +368,10 @@ export function TodoList() {
               variant={filter === 'active' ? 'default' : 'ghost'}
               onClick={() => setFilter('active')}
               size="sm"
-              className="text-sm"
+              className={cn(
+                "text-sm rounded-lg",
+                filter === 'active' && "bg-primary text-primary-foreground hover:bg-primary/90"
+              )}
             >
               Active
             </Button>
@@ -368,14 +379,17 @@ export function TodoList() {
               variant={filter === 'completed' ? 'default' : 'ghost'}
               onClick={() => setFilter('completed')}
               size="sm"
-              className="text-sm"
+              className={cn(
+                "text-sm rounded-lg",
+                filter === 'completed' && "bg-primary text-primary-foreground hover:bg-primary/90"
+              )}
             >
               Completed
             </Button>
           </div>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}

@@ -14,6 +14,8 @@ export const lightTheme = {
   error: '#EF4444',
   card: '#FFFFFF',
   cardHover: '#F8FAFC',
+  muted: '#F1F5F9',
+  mutedForeground: '#64748B',
 }
 
 export const darkTheme = {
@@ -32,6 +34,8 @@ export const darkTheme = {
   error: '#F87171',
   card: '#1E293B',
   cardHover: '#334155',
+  muted: '#334155',
+  mutedForeground: '#94A3B8',
 }
 
 export type Theme = typeof lightTheme

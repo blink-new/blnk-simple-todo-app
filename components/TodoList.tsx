@@ -11,15 +11,25 @@ interface Todo {
 }
 
 export function TodoList() {
-  const [todos, setTodos] = useState<Todo[]>(() => {
-    const saved = localStorage.getItem('todos')
-    return saved ? JSON.parse(saved) : []
-  })
+  const [todos, setTodos] = useState<Todo[]>([])
   const [newTodo, setNewTodo] = useState('')
+  const [isLoaded, setIsLoaded] = useState(false)
 
+  // Load todos from localStorage after component mounts
   useEffect(() => {
-    localStorage.setItem('todos', JSON.stringify(todos))
-  }, [todos])
+    const saved = localStorage.getItem('todos')
+    if (saved) {
+      setTodos(JSON.parse(saved))
+    }
+    setIsLoaded(true)
+  }, [])
+
+  // Save todos to localStorage whenever they change
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem('todos', JSON.stringify(todos))
+    }
+  }, [todos, isLoaded])
 
   const addTodo = (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,6 +46,10 @@ export function TodoList() {
 
   const deleteTodo = (id: string) => {
     setTodos(todos.filter(todo => todo.id !== id))
+  }
+
+  if (!isLoaded) {
+    return <div className="max-w-md mx-auto p-6">Loading...</div>
   }
 
   return (
